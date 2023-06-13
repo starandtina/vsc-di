@@ -1,22 +1,3 @@
-// let str = ''
-
-// function id(target: Function, key: string, index: number): any {
-//   str += 'Decorated! ';
-// };
-
-// class Klass {
-//   constructor(@id private param: any) {}
-// }
-
-// str += 'Ready! '
-
-// const k = new Klass('123')
-
-// str += 'Initialized!'
-
-// const appDiv: HTMLElement = document.getElementById('app');
-// appDiv.innerHTML = `<h1>Decorator: When?</h1><p>${str}</p>`;
-
 import { SyncDescriptor } from './descriptors';
 import { createDecorator } from './instantiation';
 import { InstantiationService } from './instantiationService';
@@ -24,50 +5,90 @@ import { ServiceCollection } from './serviceCollection';
 import {
   registerSingleton,
   getSingletonServiceDescriptors,
+  InstantiationType,
 } from './extensions';
 
+// 定义模块的接口
 interface IServiceA {}
 interface IServiceB {}
 interface IServiceC {
   hello(): void;
 }
+interface IServiceD {}
 
+// 定义模块的 identifier
 const IServiceA = createDecorator<IServiceA>('serviceA');
 const IServiceB = createDecorator<IServiceB>('serviceB');
 const IServiceC = createDecorator<IServiceC>('serviceC');
+const IServiceD = createDecorator<IServiceD>('serviceD');
 
-class A implements IServiceA {
-  constructor(foo: string, @IServiceB private readonly b: IServiceB) {}
+// 具体类的实现
+class AService implements IServiceA {
+  // 声明依赖 `@IServiceB`
+  constructor(
+    @IServiceB private readonly b: IServiceB,
+    @IServiceD private readonly d: IServiceD
+  ) {}
 }
 
-class B implements IServiceB {
+class BService implements IServiceB {
+  _serviceBrand: undefined;
+  // 声明依赖 `@IServiceC`
   constructor(@IServiceC private readonly c: IServiceC) {}
 }
 
 class CService implements IServiceC {
   _serviceBrand: undefined;
-  // constructor(public readonly foo: string) {}
+  // 声明依赖 `@IServiceD`
+  constructor(@IServiceD private readonly d: IServiceD) {}
   hello() {
-    console.log(' hello world=1');
+    console.log('hello');
   }
 }
 
-const instantiationService = new ServiceCollection();
-const instantiantService = new InstantiationService(instantiationService);
-instantiationService.set(IServiceB, new SyncDescriptor<IServiceB>(B));
-// serviceCollection.set(IC, new SyncDescriptor<IC>(C, ['foooo']));
-
-registerSingleton(IServiceC, CService, true);
-
-// All Contributed Services
-const contributedServices = getSingletonServiceDescriptors();
-for (let [id, descriptor] of contributedServices) {
-  instantiationService.set(id, descriptor);
+class DService implements IServiceD {
+  world() {
+    console.log('world');
+  }
 }
 
-instantiantService.createInstance(A, 'foo').b.c.hello();
-instantiantService.invokeFunction((accessor) => {
-  const service = accessor.get(IServiceC);
+// 定义模块的储存器 Map，key 是模块的 identifier，value 是模块实例或是 `SyncDescriptor`
+const serviceCollection = new ServiceCollection();
+serviceCollection.set(IServiceB, new SyncDescriptor<IServiceB>(BService));
+serviceCollection.set(IServiceC, new SyncDescriptor<IServiceC>(CService));
+// serviceCollection.set(IServiceD, new SyncDescriptor<IServiceD>(DService))
 
-  service.hello();
-});
+const instantiantService = new InstantiationService(serviceCollection);
+const childInstantiantService = instantiantService.createChild(
+  new ServiceCollection([IServiceD, new SyncDescriptor<IServiceD>(DService)])
+);
+// instantiantService.createInstance(AService).b.c.hello();
+childInstantiantService
+  .createInstance(new SyncDescriptor<IServiceA>(AService))
+  .b.c.hello();
+
+// 定义模块的储存器 Map，key 是模块的 identifier，value 是模块实例或是 `SyncDescriptor`
+// const serviceCollection = new ServiceCollection();
+// 实例化容器
+// const instantiantService = new InstantiationService(serviceCollection);
+
+// registerSingleton(IServiceB, new SyncDescriptor<IServiceB>(BService));
+// registerSingleton(IServiceC, CService, InstantiationType.Eager);
+// registerSingleton(IServiceD, DService, InstantiationType.Eager);
+
+// 获取所有全局单例模块，然后保存到 `serviceCollection` 中
+// const contributedServices = getSingletonServiceDescriptors();
+// for (let [id, descriptor] of contributedServices) {
+//   serviceCollection.set(id, descriptor);
+// }
+// instantiantService.createInstance(AService).b.c.hello();
+
+// 创建 `AService` 实例，并调用 `CService` 的方法 `hello`
+// instantiantService.createInstance(AService).b.c.hello();
+// instantiantService.createInstance(AService).d.world();
+
+// instantiantService.invokeFunction((accessor) => {
+//   const service = accessor.get(IServiceC);
+
+//   service.hello();
+// });

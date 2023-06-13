@@ -113,6 +113,7 @@ export class InstantiationService implements IInstantiationService {
     let serviceArgs: any[] = [];
     for (const dependency of serviceDependencies) {
       let service = this._getOrCreateServiceInstance(dependency.id, _trace);
+
       if (!service && this._strict && !dependency.optional) {
         throw new Error(
           `[createInstance] ${ctor.name} depends on UNKNOWN service ${dependency.id}.`
@@ -216,7 +217,7 @@ export class InstantiationService implements IInstantiationService {
         );
         if (!instanceOrDesc && !dependency.optional) {
           console.warn(
-            `[createInstance] ${id} depends on ${dependency.id} which is NOT registered.`
+            `[createInstance] ${item.id} depends on ${dependency.id} which is NOT registered.`
           );
         }
 
@@ -231,7 +232,6 @@ export class InstantiationService implements IInstantiationService {
         }
       }
     }
-
     while (true) {
       const roots = graph.roots();
 
