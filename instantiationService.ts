@@ -16,7 +16,7 @@ import { ServiceCollection } from './serviceCollection';
 import { IdleValue } from './async';
 
 // TRACING
-const _enableTracing = false;
+const _enableTracing = true;
 
 // PROXY
 // Ghetto-declare of the global Proxy object. This isn't the proper way
@@ -340,7 +340,7 @@ const enum TraceType {
 class Trace {
   private static readonly _None = new (class extends Trace {
     constructor() {
-      super(-1, null);
+      super(null, null);
     }
     stop() {}
     branch() {

@@ -7,6 +7,9 @@ import {
   getSingletonServiceDescriptors,
   InstantiationType,
 } from './extensions';
+import { ILazyFibonacciService, LazyFibonacciService } from './services/fibonacci/lazyFibonacci'
+import { IFibonacciService } from './services/fibonacci/fibonacci';
+
 
 // 定义模块的接口
 interface IServiceA {}
@@ -27,8 +30,23 @@ class AService implements IServiceA {
   // 声明依赖 `@IServiceB`
   constructor(
     @IServiceB private readonly b: IServiceB,
-    @IServiceD private readonly d: IServiceD
-  ) {}
+    @IServiceD private readonly d: IServiceD,
+    @ILazyFibonacciService private readonly lazyFibonacciService: ILazyFibonacciService,
+  ) {
+    let i = 0;
+    setInterval(() => {
+      i++;
+      if (i > 5) {
+        this._printFib(i);
+      } else {
+        console.log('AService Called');
+      }
+    }, 1000) as any as number;
+  }
+  private async _printFib(n: number) {
+    const fibService = await this.lazyFibonacciService.getInstance();
+    console.log(`AService calc ${n} fib: ${fibService.calc(n)}`);
+  }
 }
 
 class BService implements IServiceB {
@@ -57,20 +75,20 @@ const serviceCollection = new ServiceCollection();
 serviceCollection.set(IServiceB, new SyncDescriptor<IServiceB>(BService));
 serviceCollection.set(IServiceC, new SyncDescriptor<IServiceC>(CService));
 // serviceCollection.set(IServiceD, new SyncDescriptor<IServiceD>(DService))
-
-const instantiantService = new InstantiationService(serviceCollection);
-const childInstantiantService = instantiantService.createChild(
+serviceCollection.set(ILazyFibonacciService, new SyncDescriptor<ILazyFibonacciService>(LazyFibonacciService));
+const instantiationService = new InstantiationService(serviceCollection);
+const childInstantiationService = instantiationService.createChild(
   new ServiceCollection([IServiceD, new SyncDescriptor<IServiceD>(DService)])
 );
-// instantiantService.createInstance(AService).b.c.hello();
-childInstantiantService
-  .createInstance(new SyncDescriptor<IServiceA>(AService))
-  .b.c.hello();
+instantiationService.createInstance(AService).b.c.hello();
+// childInstantiationService
+//   .createInstance(new SyncDescriptor<IServiceA>(AService))
+//   .b.c.hello();
 
 // 定义模块的储存器 Map，key 是模块的 identifier，value 是模块实例或是 `SyncDescriptor`
 // const serviceCollection = new ServiceCollection();
 // 实例化容器
-// const instantiantService = new InstantiationService(serviceCollection);
+// const instantiationService = new InstantiationService(serviceCollection);
 
 // registerSingleton(IServiceB, new SyncDescriptor<IServiceB>(BService));
 // registerSingleton(IServiceC, CService, InstantiationType.Eager);
@@ -81,13 +99,13 @@ childInstantiantService
 // for (let [id, descriptor] of contributedServices) {
 //   serviceCollection.set(id, descriptor);
 // }
-// instantiantService.createInstance(AService).b.c.hello();
+// instantiationService.createInstance(AService).b.c.hello();
 
 // 创建 `AService` 实例，并调用 `CService` 的方法 `hello`
-// instantiantService.createInstance(AService).b.c.hello();
-// instantiantService.createInstance(AService).d.world();
+// instantiationService.createInstance(AService).b.c.hello();
+// instantiationService.createInstance(AService).d.world();
 
-// instantiantService.invokeFunction((accessor) => {
+// instantiationService.invokeFunction((accessor) => {
 //   const service = accessor.get(IServiceC);
 
 //   service.hello();
